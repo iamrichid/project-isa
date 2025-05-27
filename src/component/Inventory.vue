@@ -98,13 +98,63 @@
         <td class="px-4 py-3">{{ item['Adjustments'] }}</td>
         <td class="px-4 py-3">{{ item['TILESIZE'] }}</td>
         <td class="px-4 py-3">{{ item['TILETYPE'] }}</td>
-      </tr>
+        <td class=" text-center p-2 relative">
+  <button @click="toggleDropdown(index)" class="p-1 rounded hover:bg-gray-200">
+    ⋮
+  </button>
+
+  <div
+    v-if="activeDropdown === index"
+    class="absolute right-0 mt-2 w-32 bg-white border rounded shadow-lg z-50"
+  >
+    <button class="block w-full text-left px-4 py-2 hover:bg-gray-100" @click="viewItem(item)">View</button>
+    <button class="block w-full text-left px-4 py-2 hover:bg-gray-100" @click="editItem(item)">Edit</button>
+    <button class="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100" @click="deleteItem(index)">Delete</button>
+  </div>
+</td>
+        </tr>
     </tbody>
   </table>
 </div>
 
     </div>
   </div>
+
+
+
+  <!-- View Modal -->
+<div v-if="showViewModal" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+  <div class="bg-white p-6 rounded shadow-lg w-96">
+    <h3 class="text-lg font-bold mb-2">View Item</h3>
+    <pre class="text-sm">{{ editedItem }}</pre>
+    <button class="mt-4 bg-gray-700 text-white px-4 py-1 rounded" @click="showViewModal = false">Close</button>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<!-- Edit Modal -->
+<div
+  v-if="showEditModal"
+  class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50"
+>
+  <div class="bg-white p-6 rounded shadow-lg w-full max-w-lg max-h-[90vh] overflow-auto">
+    <h3 class="text-lg font-bold mb-4">Edit Item</h3>
+
+    <div v-for="(value, key) in editedItem" :key="key" class="mb-3">
+      <label class="block text-sm font-semibold mb-1 capitalize">{{ key }}</label>
+      <input
+        v-model="editedItem[key]"
+        class="border rounded w-full p-2 text-sm"
+        :placeholder="key"
+      />
+    </div>
+
+    <div class="flex gap-2 justify-end mt-6">
+      <button class="bg-green-600 text-white px-4 py-2 rounded" @click="saveEdit">Save</button>
+      <button class="bg-gray-500 text-white px-4 py-2 rounded" @click="showEditModal = false">Cancel</button>
+    </div>
+  </div>
+</div>
 </template>
 
 <script>
@@ -126,6 +176,7 @@ export default {
         'Adjustments',
         'TILESIZE',
         'TILETYPE',
+        'ACTIONS',
       ],
        searchQuery: '',
         selectedSize: '',
@@ -133,6 +184,11 @@ export default {
         stockMin: null,
         stockMax: null,
         sortAsc: true,
+        editedIndex: null,
+        editedItem: null,
+        showEditModal: false,
+        showViewModal: false,
+         activeDropdown: null, 
     }
   },
   computed: {
@@ -189,6 +245,32 @@ export default {
     toggleSort() {
   this.sortAsc = !this.sortAsc
 },
+
+  toggleDropdown(index) {
+    this.activeDropdown = this.activeDropdown === index ? null : index;
+  },
+  viewItem(item) {
+    this.selectedItem = item;
+    this.showViewModal = true;
+    this.activeDropdown = null;
+  },
+  editItem(item) {
+    this.editedItem = { ...this.rawInventory[item] };
+    this.showEditModal = true;
+    this.activeDropdown = null;
+  },
+  deleteItem(index) {
+    if (confirm("Are you sure you want to delete this item?")) {
+      this.rawInventory.splice(index, 1);
+    }
+    // Optional: trigger a toast or modal confirm
+  },
+  saveEdit() {
+     if (this.editedIndex !== null) {
+      this.$set(this.rawInventory, this.editedIndex, this.editedItem);
+      this.showEditModal = false;
+    }
+  },
 
     calculateCurrentStock(row) {
       const parse = (val) => parseFloat(val) || 0

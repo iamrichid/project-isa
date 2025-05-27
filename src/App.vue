@@ -6,6 +6,13 @@
       <img src="./assets/logo.jpg" width="160" alt="Logo" />
 
       <nav class="flex space-x-4">
+         <button
+          @click="activeTab = 'dashboard'"
+          :class="activeTab === 'dashboard' ? 'text-blue-600 font-bold underline' : 'text-gray-600 hover:text-blue-500'"
+          class="px-3 py-1"
+        >
+          Dashboard
+        </button>
         <button
           @click="activeTab = 'opening'"
           :class="activeTab === 'opening' ? 'text-blue-600 font-bold underline' : 'text-gray-600 hover:text-blue-500'"
@@ -82,8 +89,12 @@
 
       <!-- Transactions Tab -->
       <div v-if="activeTab === 'transactions'">
-        <h2 class="text-xl font-semibold mb-4">Transactions</h2>
-        <p class="text-gray-500">This section will handle stock in/out logs, sample outs, sold outs, and adjustments. (Coming soon!)</p>
+        <transaction />
+      </div>
+
+      <!-- Transactions Tab -->
+      <div v-if="activeTab === 'dashboard'">
+        <Dashboard :rawInventory="rawInventory"/>
       </div>
 
     </main>
@@ -93,10 +104,14 @@
 <script>
 import Papa from 'papaparse';
 import Inventory from './component/Inventory.vue';
+import transaction from './component/transaction.vue';
+import Dashboard from './component/dashboard.vue';
 
 export default {
   components: {
     Inventory,
+    transaction,
+    Dashboard,
   },
   data() {
     return {
