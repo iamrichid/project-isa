@@ -18,6 +18,7 @@
           :class="activeTab === 'current' ? 'text-blue-600 font-bold underline' : 'text-gray-600 hover:text-blue-500'"
           class="px-3 py-1"
         >
+        Current Stock
           
         </button>
         <button
@@ -35,49 +36,48 @@
 
       <!-- Opening Stock Tab -->
       <div v-if="activeTab === 'opening'">
-        <h2 class="text-xl font-semibold mb-4">Upload Opening Stock CSV</h2>
-        <input type="file" @change="handleOpeningCSV" accept=".csv" class="mb-4" />
+  <h2 class="text-xl font-semibold mb-4">Upload Opening Stock CSV</h2>
+  <input type="file" @change="handleOpeningCSV" accept=".csv" class="mb-4" />
 
-        <div v-if="Object.keys(openingStockMap).length">
-          <p class="mb-2 text-green-600">Opening stock loaded successfully.</p>
-        </div>
-      </div>
+  <div v-if="Object.keys(openingStockMap).length">
+    <p class="mb-2 text-green-600">Opening stock loaded successfully.</p>
+
+    <!-- Preview Table -->
+    <div class="overflow-x-auto bg-white shadow rounded-lg">
+      <table class="min-w-full border-collapse text-sm">
+        <thead class="bg-gray-100">
+          <tr>
+            <th class="p-2 border">PLIST-CODE</th>
+            <th class="p-2 border">Tile Type</th>
+            <th class="p-2 border">Size</th>
+            <th class="p-2 border">BOX QTY</th>
+            <th class="p-2 border">SIZE FACTOR</th>
+            <th class="p-2 border">Opening Stock</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="(item, index) in openingStockArray"
+            :key="index"
+            class="hover:bg-gray-50"
+          >
+            <td class="p-2 border">{{ item['PLIST-CODE'] }}</td>
+            <td class="p-2 border">{{ item['TILE TYPE'] }}</td>
+            <td class="p-2 border">{{ item['SIZE'] }}</td>
+            <td class="p-2 border">{{ item['BOX QTY'] }}</td>
+            <td class="p-2 border">{{ item['SIZE FACTOR'] }}</td>
+            <td class="p-2 border">{{ item['Opening Stock'] }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 
       <!-- Current Stock Tab -->
       <div v-if="activeTab === 'current'">
-        <h2 class="text-xl font-semibold mb-4">Upload Current Stock CSV</h2>
-        <input type="file" @change="handleCurrentCSV" accept=".csv" class="mb-4" />
-
-        <div v-if="rawInventory.length">
-          <h3 class="text-lg font-bold mt-6 mb-2">Inventory Table</h3>
-          <div class="overflow-x-auto bg-white shadow rounded-lg">
-            <table class="min-w-full border-collapse">
-              <thead class="bg-gray-100 text-left text-sm">
-                <tr>
-                  <th class="p-2 border">Tile Code</th>
-                  <th class="p-2 border">Opening Stock</th>
-                  <th class="p-2 border">Current Stock</th>
-                  <th class="p-2 border">TILE SIZE</th>
-                  <th class="p-2 border">TILE TYPE</th>
-                  <!-- Add more columns as needed -->
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  v-for="(item, index) in rawInventory"
-                  :key="index"
-                  class="hover:bg-gray-50"
-                >
-                  <td class="p-2 border">{{ item['Tile Code'] }}</td>
-                  <td class="p-2 border">{{ item['Opening Stock'] || '—' }}</td>
-                  <td class="p-2 border">{{ item['Current Stock'] }}</td>
-                  <td class="p-2 border">{{ item['TILESIZE'] }}</td>
-                  <td class="p-2 border">{{ item['TILETYPE'] }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+       <Inventory />
       </div>
 
       <!-- Transactions Tab -->
@@ -92,8 +92,12 @@
 
 <script>
 import Papa from 'papaparse';
+import Inventory from './component/Inventory.vue';
 
 export default {
+  components: {
+    Inventory,
+  },
   data() {
     return {
       activeTab: 'current',
@@ -116,30 +120,34 @@ export default {
       });
     },
     handleOpeningCSV(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+    const file = event.target.files[0];
+    if (!file) return;
 
-      Papa.parse(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          const map = {};
-          results.data.forEach(row => {
-            const code = row['PLIST-CODE']?.trim();
-            const boxQty = parseFloat(row['BOX QTY']) || 0;
-            const sizeFactor = parseFloat(row['SIZE FACTOR']) || 1;
-            const openingStock = boxQty * sizeFactor;
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const map = {};
+        const cleaned = results.data.map(row => {
+          const code = row['PLIST-CODE']?.trim();
+          const boxQty = parseFloat(row['BOX QTY']) || 0;
+          const sizeFactor = parseFloat(row['SIZE FACTOR']) || 1;
+          const openingStock = +(boxQty * sizeFactor).toFixed(2); // rounded to 2dp
 
-            if (code) {
-              map[code] = openingStock;
-            }
-          });
+          if (code) {
+            map[code] = openingStock;
+            row['Opening Stock'] = openingStock;
+          }
 
-          this.openingStockMap = map;
-          this.syncOpeningStock();
-        },
-      });
-    },
+          return row;
+        });
+
+        this.openingStockMap = map;
+        this.openingStockArray = cleaned;
+        this.syncOpeningStock();
+      },
+    });
+  },
     syncOpeningStock() {
       this.rawInventory = this.rawInventory.map(item => {
         const code = item['Tile Code']?.trim();
